@@ -1,0 +1,157 @@
+---
+title: "HTTP Requests in R"
+output: github_document
+date: "2022-08-01"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Overview of HTTP
+
+When the client uses a web page, your browser sends an HTTP request to the server where the page is hosted. The server tries to find the desired resource such as the home page (index.html).
+
+If your request is successful, the server will send the resource to the client in an HTTP response; this includes information like the type of the resource, the length of the resource, and other information.
+
+In this lab, we try to gain an understanding of HTTP, and handle the HTTP requests and response using R.
+
+## The httr library
+`httr` is a R library that allows you to build and send HTTP requests, as well as process HTTP requests easily. We can import the package as follows (may take less than minute to import):
+
+```{r importing httr library}
+library(httr)
+```
+
+You can make a GET request via the method get to `www.google.com`:
+
+```{r declaring the url and making a GET request}
+# declaring the url
+url <- "http://www.google.com"
+
+# making a GET request via the GET method
+response <- GET(url)
+```
+
+We have the response object `response`. This object has information about the response, like the status of the request. 
+
+We can view the status code using the attribute status
+
+```{r checking status code}
+status_code <- response$status
+print(paste('status_code:', status_code))
+```
+
+You can also check the headers of the response
+
+```{r checking the response headers}
+response_headers <- response$headers
+print(response_headers)
+```
+We can obtain the date the request was sent using the key Date
+
+```{r checking request date}
+print(paste('request_date:', response_headers$date))
+```
+Content-Type indicates the type of data (most likely the one you'll be scraping):
+
+```{r checking content type}
+print(paste('content_type:', response_headers$`content-type`))
+```
+Let's find the content-length attribute
+
+```{r checking the length of content}
+print(response_headers$`content-length`)
+```
+To obtain the original request, you can view it via response object:
+
+```{r obtain the original request}
+print(response$request$headers)
+```
+
+Now, let's get the content of HTTP response - which is basically the html document of `www.google.com`.
+
+```{r}
+print(content(response))
+```
+
+You can load other types of data for non-text requests like images, consider the URL of the following image:
+
+```{r getting image url}
+image_url <- "https://images.pexels.com/photos/1413412/pexels-photo-1413412.jpeg?cs=srgb&dl=pexels-giorgio-de-angelis-1413412.jpg&fm=jpg"
+```
+```{r Creating a GET request for the image url}
+response_img <- GET(image_url)
+```
+
+We can look at the response header:
+
+```{r checking the response_image header}
+response_img_headers <- response_img$headers
+```
+
+Having the header's object, we can we can see the 'Content-Type', which is an image
+
+```{r checking content_type}
+print(paste('Content Type:', response_img_headers$`content-type`))
+```
+An image is a response object that contains the image as a bytes-like object. As a result, we must save it using a file object. First, we specify the file path and name
+
+```{r saving image as a file object}
+image <- content(response_img, "raw")
+writeBin(image, 'motorcycle.jpeg')
+```
+
+Notes: You should be able to find the 'motocycle.jpeg' in your current working directory
+
+## Get Request with URL Parameters 
+
+You can also add URL parameters to HTTP GET request to filter resources. For example, instead of return all users from an API, I only want to get the user with id 1. To do so, I can add a URL parameter like `userid = 1` in my GET request.
+
+Let's see an GET example with URL parameters:
+
+Suppose we have a simple GET API with base URL for `http://httpbin.org/`
+
+```{r}
+url_get <- 'http://httpbin.org/get'
+```
+
+and we want to add some URL parameters to above GET API. To do so, we simply create a named list with parameter names and values:
+
+```{r}
+query_params <- list(name = "Yan", ID = "123")
+```
+
+Then passing the list `query_params` to the `query` argument of the GET() function.
+
+It basically tells the GET API, "I only want to get resources with name equals Yan and id equals 123".
+
+OK, let's make the GET request to 'http://httpbin.org/get' with the two parameters
+
+```{r making get request with url parameters}
+response_ <- GET(url_get, query=query_params)
+print(response_)
+```
+We can print out the updated `URL` and see the attached URL parameters.
+
+```{r}
+print(response_$url)
+```
+After the base URL `http://httpbin.org/get`, you can see the URL parameters `name=Yan&ID=123` are seperated by `?`
+
+## Post Requests
+Like a GET request a `POST` is used to send data to a server in a request body. In order to send the Post Request in R in the URL we change the route to POST, like this:
+
+```{r}
+url_post <- 'http://httpbin.org/post'
+```
+
+This endpoint will expect data as a file or as a form. It is a convenient way to configure an HTTP request to send data to a server.
+
+To make a POST request we use the POST() function, the list body is passed to the parameter body :
+
+```{r}
+body <- list(code_love='I love R', name='David')
+response_post <-POST('http://httpbin.org/post', body = body)
+print(response_post)
+```
